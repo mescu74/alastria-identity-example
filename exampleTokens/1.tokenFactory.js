@@ -7,20 +7,19 @@ const keythereum = require('keythereum')
 const rawdata = fs.readFileSync('../configuration.json')
 const config = JSON.parse(rawdata)
 
-// Data
-const tokenPayload = config.tokenPayload
-// End data
+// Init your blockchain provider
+const myBlockchainServiceIp = config.nodeUrl
 
-const keyDataAdmin = fs.readFileSync(
-  '../keystores/admin-6e3976aeaa3a59e4af51783cc46ee0ffabc5dc11.json'
+const keyDataSubject = fs.readFileSync(
+  '../keystores/subject1-806bc0d7a47b890383a831634bcb92dd4030b092.json'
 )
-const keystoreDataAdmin = JSON.parse(keyDataAdmin)
+const keystoreDataSubject = JSON.parse(keyDataSubject)
 
-const adminKeyStore = keystoreDataAdmin
+const subjectKeyStore = keystoreDataSubject
 
-let adminPrivateKey
+let subjectPrivateKey
 try {
-  adminPrivateKey = keythereum.recover(config.addressPassword, adminKeyStore)
+  subjectPrivateKey = keythereum.recover(config.addressPassword, subjectKeyStore)
 } catch (error) {
   console.log('ERROR: ', error)
   process.exit(1)
@@ -28,14 +27,14 @@ try {
 
 console.log('---- signJWT ----')
 
-const signedJWT = tokensFactory.tokens.signJWT(tokenPayload, adminPrivateKey)
+const anyJWT = config.tokenPayload
+const signedJWT = tokensFactory.tokens.signJWT(anyJWT, subjectPrivateKey)
 console.log('\tThe signed JWT is: ', signedJWT)
-tests.tokens.validateToken(signedJWT);
 
 console.log('\n---- decodeJWT ----')
 
 const decodedJWT = tokensFactory.tokens.decodeJWT(signedJWT)
-console.log('\tThe decoded token is: \n', decodedJWT)
+console.log('\tThe decoded example jwt is: \n', decodedJWT)
 
 
 console.log('\n---- verifyJWT ----')
@@ -43,10 +42,13 @@ console.log('\n---- verifyJWT ----')
 // '04' means uncompressed key (more info at https://github.com/indutny/elliptic/issues/138)
 const verifyJWT = tokensFactory.tokens.verifyJWT(
   signedJWT,
-  '04' + config.adminPubk.substr(2)
+  '04' + config.subject1Pubk.substr(2)
 )
 console.log('\tIs the signedJWT verified?', verifyJWT)
 
+//------------------------------------------------------------------------------
+
+console.log('\n---- createAlastriaToken ----')
 // Data
 const context = config.context
 const didIsssuer = config.didEntity3
@@ -57,9 +59,6 @@ const tokenExpTime = config.tokenExpTime
 const tokenActivationDate = config.tokenActivationDate
 const jsonTokenId = config.jsonTokenId
 // End data
-
-console.log('\n---- createAlastriaToken ----')
-
 const alastriaToken = tokensFactory.tokens.createAlastriaToken(
   didIsssuer,
   providerURL,
@@ -69,54 +68,61 @@ const alastriaToken = tokensFactory.tokens.createAlastriaToken(
   tokenActivationDate,
   jsonTokenId
 )
-console.log('\tThe Alastria token is: \n', alastriaToken)
+console.log('\tThe Alastria Token is: \n', alastriaToken)
 
 // Signing the AlastriaToken
-const signedAT = tokensFactory.tokens.signJWT(alastriaToken, adminPrivateKey)
+const signedAT = tokensFactory.tokens.signJWT(alastriaToken, subjectPrivateKey)
 tests.tokens.validateToken(signedAT);
+
+//------------------------------------------------------------------------------
 
 console.log('\n---- createAlastriaSesion ----')
 
 const alastriaSession = tokensFactory.tokens.createAlastriaSession(
   context,
   didIsssuer,
-  config.adminPubk,
+  config.subject1Pubk,
   signedAT,
   tokenExpTime,
   tokenActivationDate,
   jsonTokenId
 )
-console.log('\tThe Alastria session is:\n', alastriaSession)
+console.log('\tThe Alastria Session is:\n', alastriaSession)
+
+//------------------------------------------------------------------------------
+
+console.log('\n---- createCredential ----')
 
 // Data
-const jti = config.jti
-const kidCredential = config.kidCredential
-const subjectAlastriaID = config.subjectAlastriaID
+const credentialJti = config.credentialJti
+const kid = config.kid
+const didSubject1 = config.didSubject1
 const credentialSubject = {}
 const credentialKey = config.credentialKey
 const credentialValue = config.credentialValue
 credentialSubject[credentialKey] = credentialValue
-credentialSubject.levelOfAssurance = 'basic'
+credentialSubject.levelOfAssurance = 1
 // End data
 
-console.log('\n---- createCredential ----')
-
-const credential1 = tokensFactory.tokens.createCredential(
-  kidCredential,
+const credential = tokensFactory.tokens.createCredential(
+  kid,
   config.didEntity1,
-  subjectAlastriaID,
+  didSubject1,
   context,
   credentialSubject,
   tokenExpTime,
   tokenActivationDate,
-  jti
+  credentialJti
 )
-console.log('\nThe credential1 is: ', credential1)
+console.log('\nThe credential is: ', credential)
+//credential should be signed by the issuer
+const signedCredential= tokensFactory.tokens.signJWT(credential, subjectPrivateKey)
+console.log('\tThe signed credential is:', signedCredential)
+tests.credentials.validateCredential(signedCredential);
+
+//------------------------------------------------------------------------------
 
 console.log('\n---- PSMHash ----')
-
-// Init your blockchain provider
-const myBlockchainServiceIp = config.nodeUrl
 
 const web3 = new Web3(new Web3.providers.HttpProvider(myBlockchainServiceIp))
 
@@ -125,57 +131,79 @@ const psmHashSubject = tokensFactory.tokens.PSMHash(
   signedJWT,
   config.didSubject1
 )
-console.log('\tThe PSMHash is:', psmHashSubject)
+console.log('\tThe PSMHash calculate for the subjectCredentialHash is:', psmHashSubject)
 
 const psmHashReciever = tokensFactory.tokens.PSMHash(
   web3,
   signedJWT,
   config.didEntity2
 )
-console.log('\tThe PSMHashReciever is:', psmHashReciever)
+console.log('\tThe PSMHash calculate for the issuerCredentialHash is:', psmHashReciever)
 
-console.log('\n---- Create AIC ----')
-// create AIC
-
-const txCreateAlastriaID = transactionFactory.identityManager.createAlastriaIdentity(
-  web3,
-  config.adminPubk
-)
-const txCreateAlastriaIDSigned = tokensFactory.tokens.signJWT(
-  txCreateAlastriaID,
-  adminPrivateKey
-)
-
-// Only the createAlastriaID transaction must be signed inside of AIC object
-const aic = tokensFactory.tokens.createAIC(
-  txCreateAlastriaIDSigned,
-  alastriaToken,
-  config.adminPubk
-)
-console.log('\tAIC:', aic)
-
-const signedJWTAIC = tokensFactory.tokens.signJWT(aic, adminPrivateKey)
-console.log('AIC Signed:', signedJWTAIC)
-tests.alastriaIdCreations.validateAlastriaIdCreation(signedJWTAIC);
-
-// Data
-const procUrl = config.procUrl
-const procHash = config.procHash
-const data = config.data
-// End data
+//------------------------------------------------------------------------------
 
 console.log('\n---- createPresentationRequest ----')
 
+// Data
+const presentationRequestJti = config.presentationRequestJti
+const procUrl = config.procUrl
+const procHash = config.procHash
+const presentationRequestData = config.presentationRequestData
+// End data
+
 const presentationRequest = tokensFactory.tokens.createPresentationRequest(
-  kidCredential,
-  didIsssuer,
+  kid,
+  config.didEntity1,
   context,
   procUrl,
   procHash,
-  data,
+  presentationRequestData,
   callbackURL,
   tokenExpTime,
   tokenActivationDate,
-  jti
+  presentationRequestJti,
+  presentationRequestJti
 )
-console.log('\nThe presentationRequest is: ', presentationRequest)
+console.log('\nThe presentation request is: ', presentationRequest)
+const signedPresentationRequest= tokensFactory.tokens.signJWT(presentationRequest, subjectPrivateKey)
+console.log('\tThe signed presentation request is:', signedPresentationRequest)
+tests.presentationRequests.validatePresentationRequest(signedPresentationRequest);
+
+//------------------------------------------------------------------------------
+
+console.log('\n---- createPresentation ----')
+
+const presentation = tokensFactory.tokens.createPresentation(
+  kid,
+  config.didSubject1,
+  config.didEntity1,
+  context,
+  config.verifiableCredential,
+  procUrl,
+  procHash,
+  0,
+  1,
+  config.presentationJti
+)
+console.log('\nThe presentation is: ', presentation)
+const signedPresentation= tokensFactory.tokens.signJWT(presentation, subjectPrivateKey)
+console.log('\tThe signed presentation is:', signedPresentation)
+tests.presentations.validatePresentation(signedPresentation);
+
+//------------------------------------------------------------------------------
+
+console.log('\n---- Create AIC ----')
+
+// The subject, from the wallet, should build the tx createAlastriaId and sign it
+// look at exampleCreateAlastriaID
+
+const aic = tokensFactory.tokens.createAIC(
+  config.signedTxCreateAlastriaID,
+  signedAT,
+  config.subject1Pubk
+)
+console.log('\tThe AIC is:', aic)
+
+const signedJWTAIC = tokensFactory.tokens.signJWT(aic, subjectPrivateKey)
+console.log('\tThe signed AIC is:', signedJWTAIC)
+tests.alastriaIdCreations.validateAlastriaIdCreation(signedJWTAIC);
