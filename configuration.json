@@ -28,15 +28,17 @@
         "exp": 1300819380,
         "http://example.com/is_root": true
     },
-    "jti": "https://www.empresa.com/alastria/credentials/3734",
-    "kidCredential": "did:ala:quor:redt:0x12eeaCCA9eEbB78eB97d7cac6b#keys-1",
-    "subjectAlastriaID": "did:ala:quor:redt:0x12eeaCCA9eEbB78eB97d7cac6b",
+    "credentialJti": "https://www.empresa.com/alastria/credentials/3734",
+    "presentationJti": "https://www.empresa.com/alastria/presentations/3734",
+    "presentationRequestJti": "https://www.empresa.com/alastria/presentationRequests/3734",
+    "jti": "https://www.empresa.com/alastria/xxx/3734",
+    "kid": "did:ala:quor:redt:0x12eeaCCA9eEbB78eB97d7cac6b#keys-1",
     "credentialKey": "StudentID",
     "credentialValue": "11235813",
     "uri": "www.google.com",
     "procUrl": "https://www.empresa.com/alastria/businessprocess/4583",
     "procHash": "H398sjHd...kldjUYn475n",
-    "data": [
+    "presentationRequestData": [
         {
             "@context": "JWT",
             "levelOfAssurance": 3,
@@ -95,5 +97,12 @@
         "urlCreateAID": "www.entidad3.com/AID",
         "urlAOA": "www.entidad3.com/AOA",
         "status": true
-    }
+    },
+    "verifiableCredential": [
+      "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NksiLCJraWQiOiJkaWQ6YWxhOnF1b3I6cmVkVDpjZDBiMzM1ODI5OTBiOTY3OWZjNjMwMWQ4MzRkMjYzODE0M2NlNTE1In0...El3WIY990W4KPNRBpsZLSthxsHTkBAyXVtyZXMxpzS-BScFYg-6wlT_vC0Obq01MtjA124AziZoo_6AsIxAZCQ",
+      "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NksiLCJraWQiOiJkaWQ6YWxhOnF1b3I6cmVkVDpjZDBiMzM1ODI5OTBiOTY3OWZjNjMwMWQ4MzRkMjYzODE0M2NlNTE1In0...keIx-yHaCgJKDKyaVxGRc1Ue-vjE6zjlkJv4he4GemJVZDC6zvMHzmd-QNB3eLn5xdsQyU3nXwHvesQeqE4KBQ"
+    ],
+    "signedTxCreateAlastriaID" : "0xf901888203f180830927c094bd4a2c84edb97be5beff7cd341bd63567e73f8c980b901246d69d99a000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000c450382c1a000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000803265353037616630313136376339386136616363633063643436616232613235366464366236633639656331633063323866383066623632653166376437303233333736386230633538646262646163316663333538623831343163303735613532303438336366393737396534656139386431336466323833336633373637000000000000000000000000000000000000000000000000000000001ca0e3e05abb1592bd15dc72e57d8930c24efdd0e286437a34ca2f118372ad428b25a0480ac816c93a5c1e8eff1dfd96f850dc664c5daa1ff94a88bdf789b0652ebfd3"
+
+
 }
